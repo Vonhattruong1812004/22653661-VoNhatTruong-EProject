@@ -1,0 +1,104 @@
+version: "3.9"  # phiên bản Docker Compose hiện tại không cần quá cũ
+
+services:
+  # =====================
+  # MongoDB
+  # =====================
+  mongo:
+    image: mongo:6
+    container_name: mongo
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  # =====================
+  # RabbitMQ
+  # =====================
+  rabbitmq:
+    image: rabbitmq:3.11-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"       # AMQP
+      - "15672:15672"     # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  # =====================
+  # Auth Service
+  # =====================
+  auth-service:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: auth-service
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongo:27017/auth
+      - JWT_SECRET=secret
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
+
+    depends_on:
+      - mongo
+      - rabbitmq
+
+  # =====================
+  # Product Service
+  # =====================
+  product-service:
+    build:
+      context: ./product
+      dockerfile: Dockerfile
+    container_name: product-service
+    environment:
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongo:27017/products
+      - JWT_SECRET=secret
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
+
+    depends_on:
+      - mongo
+      - rabbitmq
+
+  # =====================
+  # Order Service
+  # =====================
+  order-service:
+    build:
+      context: ./order
+      dockerfile: Dockerfile
+    container_name: order-service
+    environment:
+      - PORT=3002
+      - MONGODB_URI=mongodb://mongo:27017/orders
+      - JWT_SECRET=secret
+      - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
+
+    depends_on:
+      - mongo
+      - rabbitmq
+      - product-service
+
+  # =====================
+  # API Gateway
+  # =====================
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    environment:
+      - PORT=3003
+    ports:
+      - "3003:3003"
+    depends_on:
+      - auth-service
+      - product-service
+      - order-service
+
+# =====================
+# Volumes
+# =====================
+volumes:
+  mongo_data:
