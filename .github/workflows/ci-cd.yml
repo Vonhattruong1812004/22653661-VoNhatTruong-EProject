@@ -12,8 +12,6 @@ jobs:
     services:
       mongo:
         image: mongo:6
-        ports:
-          - 27017:27017
         options: >-
           --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'" 
           --health-interval=5s 
@@ -22,9 +20,6 @@ jobs:
 
       rabbitmq:
         image: rabbitmq:3.11-management
-        ports:
-          - 5672:5672
-          - 15672:15672
         options: >-
           --health-cmd="rabbitmqctl status" 
           --health-interval=10s 
@@ -40,54 +35,32 @@ jobs:
       with:
         node-version: 20
 
-    - name: Install dependencies for auth
-      run: |
-        cd auth
-        npm install
-        cd ..
-
-    - name: Install dependencies for product
-      run: |
-        cd product
-        npm install
-        cd ..
-
-    - name: Install dependencies for order
-      run: |
-        cd order
-        npm install
-        cd ..
-
     - name: Build Docker images
-      run: docker-compose build
+      run: docker compose build
 
     - name: Start Docker containers
-      run: docker-compose up -d
+      run: docker compose up -d
 
-    - name: Wait for MongoDB to be ready
-      run: |
-        until docker exec $(docker ps -q -f ancestor=mongo) mongosh --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
-          echo "Waiting for MongoDB..."
-          sleep 2
-        done
+    - name: Wait for services to be healthy
+      run: sleep 10  # Health check already done by GitHub runner
 
     - name: Run tests for auth
       run: |
         cd auth
+        npm ci
         npm test
-        cd ..
 
     - name: Run tests for product
       run: |
         cd product
+        npm ci
         npm test
-        cd ..
 
     - name: Run tests for order (if any)
       run: |
         cd order
+        npm ci
         npm test || echo "No tests defined for order"
-        cd ..
 
     - name: Shutdown Docker containers
-      run: docker-compose down
+      run: docker compose down
