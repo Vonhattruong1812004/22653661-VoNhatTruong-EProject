@@ -1,11 +1,14 @@
-name: CI
+name: CI/CD
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     services:
       mongo:
         image: mongo:6
@@ -23,30 +26,76 @@ jobs:
           - 15672:15672
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Node
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
 
-    - name: Create .env files
-      run: |
-        echo "MONGODB_URI=mongodb://localhost:27017/auth" >> auth/.env
-        echo "JWT_SECRET=secret" >> auth/.env
-        echo "MONGODB_URI=mongodb://localhost:27017/products" >> product/.env
-        echo "JWT_SECRET=secret" >> product/.env
-        echo "MONGODB_URI=mongodb://localhost:27017/orders" >> order/.env
-        echo "JWT_SECRET=secret" >> order/.env
+      # --------------------
+      # Auth Service
+      # --------------------
+      - name: Install dependencies - Auth
+        run: |
+          cd auth
+          npm install
+          cd ..
 
-    - name: Install dependencies
-      run: |
-        cd auth && npm ci && cd ..
-        cd product && npm ci && cd ..
-        cd order && npm ci && cd ..
-        cd api-gateway && npm ci && cd ..
+      - name: Run tests - Auth
+        run: |
+          cd auth
+          npx mocha --timeout 20000 src/test/**/*.test.js --exit
+          cd ..
 
-    - name: Run tests
-      run: |
-        cd auth && npm test && cd ..
-        cd product && npm test && cd ..
+      # --------------------
+      # Product Service
+      # --------------------
+      - name: Install dependencies - Product
+        run: |
+          cd product
+          npm install
+          cd ..
+
+      - name: Run tests - Product
+        run: |
+          cd product
+          npx mocha --timeout 20000 src/test/**/*.test.js --exit
+          cd ..
+
+      # --------------------
+      # Order Service
+      # --------------------
+      - name: Install dependencies - Order
+        run: |
+          cd order
+          npm install
+          cd ..
+
+      - name: Run tests - Order
+        run: |
+          cd order
+          npx mocha --timeout 20000 src/test/**/*.test.js --exit
+          cd ..
+
+      # --------------------
+      # API Gateway
+      # --------------------
+      - name: Install dependencies - API Gateway
+        run: |
+          cd api-gateway
+          npm install
+          cd ..
+
+      - name: Build Docker containers
+        run: |
+          docker-compose -f docker-compose.yml build
+
+      - name: Start Docker containers
+        run: |
+          docker-compose -f docker-compose.yml up -d
+
+      - name: Verify services are running
+        run: |
+          docker ps
