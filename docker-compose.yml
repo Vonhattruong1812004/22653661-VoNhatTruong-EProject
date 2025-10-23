@@ -1,4 +1,4 @@
-version: "3.9"  # phiên bản Docker Compose hiện tại không cần quá cũ
+version: "3.9"
 
 services:
   # =====================
@@ -7,8 +7,6 @@ services:
   mongo:
     image: mongo:6
     container_name: mongo
-    ports:
-      - "27018:27017"
     volumes:
       - mongo_data:/data/db
 
@@ -28,7 +26,7 @@ services:
   # =====================
   # Auth Service
   # =====================
-  auth-service:
+  auth:
     build:
       context: ./auth
       dockerfile: Dockerfile
@@ -38,7 +36,6 @@ services:
       - MONGODB_URI=mongodb://mongo:27017/auth
       - JWT_SECRET=secret
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
-
     depends_on:
       - mongo
       - rabbitmq
@@ -46,7 +43,7 @@ services:
   # =====================
   # Product Service
   # =====================
-  product-service:
+  product:
     build:
       context: ./product
       dockerfile: Dockerfile
@@ -56,7 +53,6 @@ services:
       - MONGODB_URI=mongodb://mongo:27017/products
       - JWT_SECRET=secret
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
-
     depends_on:
       - mongo
       - rabbitmq
@@ -64,7 +60,7 @@ services:
   # =====================
   # Order Service
   # =====================
-  order-service:
+  order:
     build:
       context: ./order
       dockerfile: Dockerfile
@@ -74,11 +70,10 @@ services:
       - MONGODB_URI=mongodb://mongo:27017/orders
       - JWT_SECRET=secret
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
-
     depends_on:
       - mongo
       - rabbitmq
-      - product-service
+      - product
 
   # =====================
   # API Gateway
@@ -93,9 +88,9 @@ services:
     ports:
       - "3003:3003"
     depends_on:
-      - auth-service
-      - product-service
-      - order-service
+      - auth
+      - product
+      - order
 
 # =====================
 # Volumes
