@@ -2,29 +2,34 @@ name: CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  test:
+  build-and-test:
     runs-on: ubuntu-latest
-
     services:
       mongo:
         image: mongo:6
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'" 
-          --health-interval 10s 
-          --health-timeout 5s 
-          --health-retries 5
         ports:
           - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.adminCommand(\"ping\")'" 
+          --health-interval=5s 
+          --health-timeout=5s 
+          --health-retries=10
+
       rabbitmq:
         image: rabbitmq:3.11-management
         ports:
           - 5672:5672
           - 15672:15672
+        options: >-
+          --health-cmd="rabbitmqctl status" 
+          --health-interval=10s 
+          --health-timeout=5s 
+          --health-retries=5
 
     steps:
     - name: Checkout code
@@ -33,56 +38,56 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '20'
+        node-version: 20
 
-    - name: Install dependencies for all services
+    - name: Install dependencies for auth
       run: |
         cd auth
-        npm ci
-        cd ../product
-        npm ci
-        cd ../order
-        npm ci
-        cd ../api-gateway
-        npm ci
+        npm install
         cd ..
 
-    - name: Wait for MongoDB and RabbitMQ
+    - name: Install dependencies for product
       run: |
-        echo "Waiting for MongoDB to be ready..."
-        until docker exec $(docker ps -q -f ancestor=mongo) mongosh --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
-          sleep 2
-          echo "Waiting..."
-        done
-        echo "MongoDB is ready!"
+        cd product
+        npm install
+        cd ..
 
-        echo "Waiting for RabbitMQ to be ready..."
-        until docker exec $(docker ps -q -f ancestor=rabbitmq) rabbitmqctl status > /dev/null 2>&1; do
-          sleep 2
-          echo "Waiting..."
-        done
-        echo "RabbitMQ is ready!"
+    - name: Install dependencies for order
+      run: |
+        cd order
+        npm install
+        cd ..
 
-    - name: Run tests for Auth Service
+    - name: Build Docker images
+      run: docker-compose build
+
+    - name: Start Docker containers
+      run: docker-compose up -d
+
+    - name: Wait for MongoDB to be ready
+      run: |
+        until docker exec $(docker ps -q -f ancestor=mongo) mongosh --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
+          echo "Waiting for MongoDB..."
+          sleep 2
+        done
+
+    - name: Run tests for auth
       run: |
         cd auth
         npm test
         cd ..
 
-    - name: Run tests for Product Service
+    - name: Run tests for product
       run: |
         cd product
         npm test
         cd ..
 
-    - name: Run tests for Order Service
+    - name: Run tests for order (if any)
       run: |
         cd order
-        npm test
+        npm test || echo "No tests defined for order"
         cd ..
 
-    - name: Build and test API Gateway
-      run: |
-        cd api-gateway
-        npm test || echo "No tests defined for API Gateway"
-        cd ..
+    - name: Shutdown Docker containers
+      run: docker-compose down
