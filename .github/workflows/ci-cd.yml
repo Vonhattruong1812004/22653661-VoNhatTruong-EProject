@@ -1,0 +1,52 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      rabbitmq:
+        image: rabbitmq:3.11-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Create .env files
+      run: |
+        echo "MONGODB_URI=mongodb://localhost:27017/auth" >> auth/.env
+        echo "JWT_SECRET=secret" >> auth/.env
+        echo "MONGODB_URI=mongodb://localhost:27017/products" >> product/.env
+        echo "JWT_SECRET=secret" >> product/.env
+        echo "MONGODB_URI=mongodb://localhost:27017/orders" >> order/.env
+        echo "JWT_SECRET=secret" >> order/.env
+
+    - name: Install dependencies
+      run: |
+        cd auth && npm ci && cd ..
+        cd product && npm ci && cd ..
+        cd order && npm ci && cd ..
+        cd api-gateway && npm ci && cd ..
+
+    - name: Run tests
+      run: |
+        cd auth && npm test && cd ..
+        cd product && npm test && cd ..
