@@ -1,31 +1,34 @@
 version: "3.9"
 
 services:
-  # =====================
-  # MongoDB
-  # =====================
   mongo:
     image: mongo:6
     container_name: mongo
+    command: ["mongod", "--bind_ip_all"]
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
-  # =====================
-  # RabbitMQ
-  # =====================
   rabbitmq:
     image: rabbitmq:3.11-management
     container_name: rabbitmq
     ports:
-      - "5672:5672"       # AMQP
-      - "15672:15672"     # Management UI
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # =====================
-  # Auth Service
-  # =====================
   auth:
     build:
       context: ./auth
@@ -37,12 +40,11 @@ services:
       - JWT_SECRET=secret
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
     depends_on:
-      - mongo
-      - rabbitmq
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
-  # =====================
-  # Product Service
-  # =====================
   product:
     build:
       context: ./product
@@ -54,12 +56,11 @@ services:
       - JWT_SECRET=secret
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
     depends_on:
-      - mongo
-      - rabbitmq
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
-  # =====================
-  # Order Service
-  # =====================
   order:
     build:
       context: ./order
@@ -71,13 +72,13 @@ services:
       - JWT_SECRET=secret
       - RABBITMQ_URI=amqp://guest:guest@rabbitmq:5672
     depends_on:
-      - mongo
-      - rabbitmq
-      - product
+      mongo:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      product:
+        condition: service_started
 
-  # =====================
-  # API Gateway
-  # =====================
   api-gateway:
     build:
       context: ./api-gateway
@@ -88,12 +89,12 @@ services:
     ports:
       - "3003:3003"
     depends_on:
-      - auth
-      - product
-      - order
+      auth:
+        condition: service_started
+      product:
+        condition: service_started
+      order:
+        condition: service_started
 
-# =====================
-# Volumes
-# =====================
 volumes:
   mongo_data:
