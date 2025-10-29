@@ -1,0 +1,23 @@
+# 1. Base image
+FROM node:20-alpine
+
+# 2. Set working directory
+WORKDIR /usr/src/app
+
+# 3. Copy package.json & package-lock.json
+COPY package*.json ./
+
+# 4. Install dependencies
+RUN npm ci --only=production
+
+# 5. Install wait-on (chờ service sẵn sàng)
+RUN npm install -g wait-on
+
+# 6. Copy source code
+COPY . .
+
+# 7. Expose port
+EXPOSE 3001
+
+# 8. Start command with wait-on
+CMD npm start

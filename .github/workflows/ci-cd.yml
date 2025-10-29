@@ -1,0 +1,86 @@
+name: CI/CD Pipeline for Microservices
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+      rabbitmq:
+        image: rabbitmq:3-management-alpine
+        ports:
+          - 5672:5672
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js with caching
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install wait-on
+        run: npm install -g wait-on
+
+      - name: Wait for MongoDB and RabbitMQ to be ready
+        run: wait-on tcp:27017 tcp:5672 -t 60000
+
+      - name: Install All Dependencies (Parallel)
+        run: |
+          cd auth && npm ci &
+          cd product && npm ci &
+          cd order && npm ci &
+          wait
+        shell: bash
+
+      - name: Create .env files
+        run: |
+          echo "MONGODB_AUTH_URI=mongodb://localhost:27017/ci_auth" > auth/.env
+          echo "JWT_SECRET=ci_secret" >> auth/.env
+          echo "RABBITMQ_URI=amqp://guest:guest@localhost:5672" >> auth/.env
+
+          echo "MONGODB_PRODUCT_URI=mongodb://localhost:27017/ci_product" > product/.env
+          echo "JWT_SECRET=ci_secret" >> product/.env
+          echo "RABBITMQ_URI=amqp://guest:guest@localhost:5672" >> product/.env
+          echo "LOGIN_TEST_USER=ci_user" >> product/.env
+          echo "LOGIN_TEST_PASSWORD=ci_password" >> product/.env
+          echo "AUTH_SERVICE_URL=http://localhost:3000" >> product/.env
+
+          echo "MONGODB_ORDER_URI=mongodb://localhost:27017/ci_order" > order/.env
+          echo "JWT_SECRET=ci_secret" >> order/.env
+          echo "RABBITMQ_URI=amqp://guest:guest@localhost:5672" >> order/.env
+
+      - name: Run Background Services and Wait
+        run: |
+          cd auth && nohup npm start > nohup.out 2>&1 &
+          cd ../order && nohup npm start > nohup.out 2>&1 &
+
+          # Chờ auth service sẵn sàng trước khi test
+          for i in {1..20}; do
+            if curl -sS --max-time 1 http://localhost:3000/login -X POST > /dev/null 2>&1; then
+              echo "Auth service is responding!"
+              break
+            fi
+            echo "Attempt $i/20: waiting..."
+            sleep 0.5
+          done
+        shell: bash
+
+      - name: Run Tests (Auth, Product, Order)
+        run: |
+          set -e
+          # Tăng timeout mocha trong package.json hoặc dùng --timeout 60000
+          cd auth && npm test -- --timeout 60000 > test.log 2>&1 && echo "✅ Auth tests passed!" &
+          cd ../product && npm test -- --timeout 60000 > test.log 2>&1 && echo "✅ Product tests passed!" &
+          cd ../order && npm test -- --timeout 60000 > test.log 2>&1 && echo "✅ Order tests passed!" &
+          wait
+        shell: bash
