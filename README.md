@@ -40,8 +40,8 @@ Hệ thống mô phỏng **e-commerce microservices**:
 ### Clone repository
 
 
-git clone <your-repository-url>
-cd <your-repository-name>
+git clone (https://github.com/Vonhattruong1812004/22653661-VoNhatTruong-EProject)
+cd 22653661-VoNhatTruong-EProject
 
 ### Tạo file .env cho từng service
 auth/.env :

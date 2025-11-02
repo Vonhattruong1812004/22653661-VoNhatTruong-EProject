@@ -1,28 +1,28 @@
 {
-  "name": "EProject",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "mocha --timeout 20000 --recursive --exclude '**/node_modules/**' '**/*.test.js' --exit"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "amqplib": "^0.10.9",
-    "bcryptjs": "^3.0.2",
-    "chai": "^4.5.0",
-    "chai-http": "^4.4.0",
-    "express": "^4.21.2",
-    "http-proxy": "^1.18.1",
-    "mocha": "^10.8.2",
-    "mongoose": "^7.8.7",
-    "uuid": "^13.0.0"
-  },
-  "devDependencies": {
-    "dotenv": "^16.6.1",
-    "jsonwebtoken": "^9.0.2",
-    "wait-on": "^7.0.1"
-  }
+    "name": "EProject",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "mocha --timeout 20000 --recursive --exclude '**/node_modules/**' '**/*.test.js' --exit"
+    },
+    "keywords": [],
+    "author": "https://github.com/Vonhattruong1812004/22653661-VoNhatTruong-EProject",
+    "license": "ISC",
+    "dependencies": {
+        "amqplib": "^0.10.9",
+        "bcryptjs": "^3.0.2",
+        "chai": "^4.5.0",
+        "chai-http": "^4.4.0",
+        "express": "^4.21.2",
+        "http-proxy": "^1.18.1",
+        "mocha": "^10.8.2",
+        "mongoose": "^7.8.7",
+        "uuid": "^13.0.0"
+    },
+    "devDependencies": {
+        "dotenv": "^16.6.1",
+        "jsonwebtoken": "^9.0.2",
+        "wait-on": "^7.0.1"
+    }
 }

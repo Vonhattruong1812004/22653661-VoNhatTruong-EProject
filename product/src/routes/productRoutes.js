@@ -13,7 +13,7 @@ router.get("/", isAuthenticated, productController.getProducts);
 router.get("/:id", isAuthenticated, productController.getid);
 
 
-// router.get("/:id", isAuthenticated, productController.getProductById); hehe
+// router.get("/:id", isAuthenticated, productController.getProductById);
 
 // Các route liên quan đến việc mua hàng
 router.post("/buy", isAuthenticated, productController.createOrder);
