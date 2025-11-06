@@ -132,32 +132,14 @@ class ProductController {
     //        res.status(200).json(product);
     //    }
 
-    async getID(req, res) {
-            const product = await Product.findById(req.params.id);
-            res.status(200).json(product);
-        }
-        // async getProductById(req, res) {
-        // const product = await Product.findById(req.params.id);
-
-    // if(!product){
-    //   return res.status(404).json({message: "product not found"});
-    // }
-
-    // res.status(200).json(product);
-    // }
-
-
-    // async getProductById(req, res) {
-    //   try {
+    // async getID(req, res) {
     //     const product = await Product.findById(req.params.id);
-    //     if(!product){
-    //       return res.status(404).json({message: "product not found"});
-    //     } 
     //     res.status(200).json(product);
-    //   } catch (err) {
-    //     return res.status(400).json({ message: "Invalid product ID format" });
-    //   }
     // }
+    async getID(req, res) {
+        const product = await Product.findById(req.params.id);
+        res.status(200).json(product);
+    }
 
 }
 
