@@ -124,19 +124,7 @@ class ProductController {
             res.status(500).json({ message: "Server error" });
         }
     }
-
-    //phần 8: phần thêm vào đây nè xem san pham = id
-    //    async getid(req, res) {
-    //        const product = await Product.findById(req.params.id);
-
-    //        res.status(200).json(product);
-    //    }
-
-    // async getID(req, res) {
-    //     const product = await Product.findById(req.params.id);
-    //     res.status(200).json(product);
-    // }
-    async getID(req, res) {
+    async getId(req, res) {
         const product = await Product.findById(req.params.id);
         res.status(200).json(product);
     }
